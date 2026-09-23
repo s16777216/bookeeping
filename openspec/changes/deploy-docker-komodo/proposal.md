@@ -1,40 +1,68 @@
 ## Why
 
-目前專案透過 GitHub Pages 進行前端靜態部署，受限於固定的子目錄路徑（`/bookkeeping/`）以及公共雲端託管。為了落實純粹的 Local-first 私人記帳隱私，並整合使用者地端伺服器現有的 Docker、Komodo 容器管理平台與 Cloudflare Tunnel（自動提供安全 HTTPS 以完整支援 PWA 離線存取），本提案將部署方式轉換為：地端 Multi-stage Docker 容器化運行，並透過 GitHub Action / Webhook 觸發地端 Komodo 自動構建與部署。
+目前專案透過 GitHub Pages 部署，受限於 repository 子路徑，且無法整合既有的地端 Docker、Komodo 與 Cloudflare Tunnel。此變更將應用遷移至地端容器部署，保留瀏覽器端 Local-first 資料模型，並建立可驗證且不公開 Komodo 管理入口的自動發布流程。
 
 ## What Changes
 
-- **新增多階段 Docker 構建設定（`Dockerfile`）**：
-  - 第一階段使用 `node:20-alpine` 執行依賴安裝與 `npm run build`。
-  - 第二階段使用輕量 `nginx:alpine`，僅複製 `./dist` 產物，產出體積小於 20MB 的純淨運作容器。
-- **新增 Nginx 靜態伺服器配置（`nginx.conf`）**：
-  - 支援 SPA 前端路由回退（`try_files $uri $uri/ /index.html`）。
-  - 為 PWA 核心檔案（如 `sw.js`）設置 `no-cache` 標頭，防止快取鎖死更新。
-- **新增 Docker Compose 編排配置（`docker-compose.yml`）**：
-  - 提供 Komodo 容器平台一鍵導入或 Stack 部署之標準定義。
-- **調整 Vite 與 PWA 根路徑（`vite.config.ts`）**：
-  - 將原本專為 GitHub Pages 設置的 `base: '/bookkeeping/'` 改為獨立網域標準的根路徑 `base: '/'`。
-  - 同步將 PWA manifest 的 `start_url`、`scope` 與 `id` 調整為 `/`。
-- **改寫自動化部署工作流程（`.github/workflows/deploy.yml`）**：
-  - 移除原先推送到 GitHub Pages 的工作流程。
-  - 改為在 push 到 `main` 分支時，發送 Webhook 請求通知地端 Komodo 執行拉取與 Multi-stage 構建。
+- 新增使用 Node 24 Alpine builder 與 Nginx Alpine runtime 的 multi-stage Docker build；基底映像固定版本與 digest，runtime 不包含 Node.js 或應用原始碼。
+- 新增 Nginx 設定：
+  - SPA fallback。
+  - `index.html`、PWA manifest 與 Service Worker 禁止快取。
+  - hash 靜態資源使用 immutable 長期快取。
+  - 加入 CSP、`nosniff`、Referrer-Policy 與 frame 限制；CSP 保留 Google Fonts 所需來源。
+- 新增應用 Compose：
+  - 不發布宿主機 port。
+  - 將 `bookkeeping` 加入既有 `cloudflare` external network。
+  - 透過 `GET /` healthcheck 判定可用性。
+- 新增獨立的 Deployment Runner 容器與 Compose：
+  - repository-level GitHub self-hosted runner。
+  - 只加入既有 `komodo` external network 並呼叫 Komodo webhook。
+  - 不使用 privileged mode、不掛載 Docker socket 或宿主機目錄。
+  - runner release 與 checksum 固定，由自動 PR 管理升版。
+  - 首次以短效 registration token 註冊，設定保存於獨立 volume。
+- 將 GitHub repository 改為 private，之後才啟用 Deployment Runner。
+- 將 CI/CD 改為兩階段：
+  - GitHub-hosted runner 先執行依賴安裝與 production build。
+  - 驗證成功後，由 self-hosted runner 使用 `KOMODO_WEBHOOK_URL` secret 呼叫內網 Komodo webhook。
+  - 支援 `main` push 與 `workflow_dispatch`；部署序列化，執行中的部署不中斷，待執行版本只保留最新 commit。
+- 將 Vite 與 PWA 路徑固定為 `/`，移除 `BASE_URL` 覆寫。
+- 新站從空 IndexedDB 開始，不移轉 GitHub Pages origin 的既有資料。
+- 新站與 PWA 驗收完成後，停用 GitHub Pages。
+- Komodo Stack、webhook 與更新流程在 Komodo UI 設定，並由維運文件記錄。
+- 部署採單一應用容器，可接受更新時數秒中斷；失敗 build 或 healthcheck 不取代現行容器。
+- 不使用 Container Registry，也不保留舊版 image；回退時由舊 Git commit 重新 build。
 
 ## Capabilities
 
 ### New Capabilities
-<!-- 純部署與運維工具鏈配置，不更動業務規範，由 .openspec.yaml 的 skip_specs: true 聲明 -->
+<!-- 純部署、CI/CD 與維運工具鏈調整，不新增產品行為規範；由 change 的 skip_specs 設定略過 specs。 -->
 
 ### Modified Capabilities
-<!-- 無既有 specs 修改 -->
+<!-- 無既有產品 capability requirement 變更。 -->
 
 ## Impact
 
-- **Affected Files**:
-  - `Dockerfile` [NEW]
-  - `nginx.conf` [NEW]
-  - `docker-compose.yml` [NEW]
-  - `vite.config.ts` [MODIFY]
-  - `.github/workflows/deploy.yml` [MODIFY]
-- **系統影響**:
-  - 移除對 GitHub Pages 雲端託管的依賴。
-  - 本地開發（`npm run dev`）與本地建置（`npm run build`）完全不受影響且路徑更乾淨。
+- **新增或調整的 repository 檔案**
+  - `.dockerignore`
+  - `Dockerfile`
+  - `nginx.conf`
+  - `compose.yml`
+  - runner Dockerfile 與 `compose.runner.yml`
+  - `.env.runner.example`
+  - `.github/workflows/deploy.yml`
+  - 自動相依版本更新設定
+  - 部署與 cutover 維運文件
+  - `vite.config.ts`
+
+- **外部系統與人工設定**
+  - GitHub repository visibility、Actions secret 與 repository-level runner registration。
+  - Komodo Stack、內網 webhook、build／replace 與失敗保留策略。
+  - 既有 `cloudflare` 與 `komodo` Docker external networks。
+  - Cloudflare Tunnel route。
+  - 新站驗收後停用 GitHub Pages。
+
+- **使用者可見影響**
+  - Production URL 改為獨立網域根路徑。
+  - 舊 GitHub Pages 瀏覽器資料不移轉，新站從空資料庫開始。
+  - 網站維持公開存取，帳本資料仍僅儲存在各訪客自己的瀏覽器。
+  - Google Fonts 第三方請求維持不變。
