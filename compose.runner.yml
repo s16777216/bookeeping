@@ -1,0 +1,23 @@
+services:
+  deployment-runner:
+    build:
+      context: .
+      dockerfile: runner/Dockerfile
+    container_name: bookkeeping-deployment-runner
+    restart: unless-stopped
+    environment:
+      GITHUB_REPOSITORY_URL: ${GITHUB_REPOSITORY_URL:-}
+      RUNNER_REGISTRATION_TOKEN: ${RUNNER_REGISTRATION_TOKEN:-}
+      RUNNER_NAME: ${RUNNER_NAME:-bookkeeping-deploy}
+    volumes:
+      - runner-state:/runner-state
+    networks:
+      - komodo-networks
+
+volumes:
+  runner-state:
+
+networks:
+  komodo-networks:
+    external: true
+    name: komodo-networks

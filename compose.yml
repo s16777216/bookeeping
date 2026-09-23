@@ -1,0 +1,20 @@
+services:
+  bookkeeping:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bookkeeping
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+    networks:
+      - cloudflared-tunnel-network
+
+networks:
+  cloudflared-tunnel-network:
+    external: true
+    name: cloudflared-tunnel-network

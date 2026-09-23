@@ -2,8 +2,8 @@
 
 參見 `proposal.md`。目前 production 由 GitHub Pages workflow 建置並部署，build 時注入 `/bookeeping/` base path。目標環境已有 Komodo、Cloudflare Tunnel，以及兩個用途分離的 Docker external networks：
 
-- `cloudflare`：Cloudflare Tunnel 與應用服務間的流量。
-- `komodo`：Deployment Runner 與 Komodo webhook 間的控制流量。
+- `cloudflared-tunnel-network`：Cloudflare Tunnel 與應用服務間的流量。
+- `komodo-networks`：Deployment Runner 與 Komodo webhook 間的控制流量。
 
 應用資料使用瀏覽器端 IndexedDB。更換 origin 後舊資料不會自動移轉，本次明確接受新站從空資料庫開始。
 
@@ -15,7 +15,7 @@ Repository 必須先由 public 改為 private，才能啟用地端 self-hosted r
 
 - 建立可重現的 multi-stage application image。
 - 以 Nginx 正確提供 SPA、PWA 快取及基本安全標頭。
-- 讓應用只透過 `cloudflare` Docker network 提供服務，不發布宿主機 port。
+- 讓應用只透過 `cloudflared-tunnel-network` Docker network 提供服務，不發布宿主機 port。
 - 以兩階段 CI/CD 驗證 commit，再透過地端 Deployment Runner 通知 Komodo。
 - 將 runner 與應用的生命週期、網路及權限分離。
 - build 或新容器健康檢查失敗時保留現行服務。
@@ -81,7 +81,7 @@ CSP 預設限制為同源，並只額外開放 Google Fonts 所需的 stylesheet
 
 - `restart: unless-stopped`
 - 不設定 `ports`
-- 加入既有且由外部管理的 `cloudflare` network
+- 加入既有且由外部管理的 `cloudflared-tunnel-network` network
 - Cloudflare Tunnel origin 指向 `http://bookkeeping:80`
 
 容器透過 HTTP `GET /` 健康檢查 Nginx 與 `index.html`：
@@ -122,8 +122,8 @@ Repository 在 runner 啟用前改為 private。Runner 註冊於此 repository�
 
 Runner 使用獨立 Dockerfile 與 `compose.runner.yml`，不與 application Compose 共用生命週期。Runner：
 
-- 只加入既有 `komodo` external network。
-- 不加入 `cloudflare` network。
+- 只加入既有 `komodo-networks` external network。
+- 不加入 `cloudflared-tunnel-network` network。
 - 不使用 privileged mode。
 - 不掛載 Docker socket。
 - 不掛載宿主機目錄。
@@ -153,13 +153,13 @@ Application Compose 保存在 repository；Komodo Stack、webhook、build／repl
 維運文件記錄：
 
 - Stack 對應 repository 與 branch。
-- `cloudflare`、`komodo` external network prerequisites。
+- `cloudflared-tunnel-network`、`komodo-networks` external network prerequisites。
 - webhook 建立與 `KOMODO_WEBHOOK_URL` secret 設定。
 - build-before-replace 與 health gate。
 - runner bootstrap、升版、重新註冊與故障排查。
 - Cloudflare route 與 GitHub Pages cutover。
 
-Komodo 管理 UI 與 webhook 不公開到 Internet；Deployment Runner 透過 `komodo` network 以內部 service name 呼叫。
+Komodo 管理 UI 與 webhook 不公開到 Internet；Deployment Runner 透過 `komodo-networks` network 以內部 service name 呼叫。
 
 ### 9. 發布、回退與資料邊界
 
@@ -187,7 +187,7 @@ GitHub Pages origin 的 IndexedDB 不移轉，新網域首次啟動建立空資�
 - **[Runner 版本過期]** 固定版本不會在啟動時自行升級
   → 由自動 PR 更新版本與 checksum，納入日常維運。
 
-- **[外部 network 缺失]** `cloudflare` 或 `komodo` 不存在時 Compose 無法啟動
+- **[外部 network 缺失]** `cloudflared-tunnel-network` 或 `komodo-networks` 不存在時 Compose 無法啟動
   → 在部署前置檢查與維運文件中明列並驗證。
 
 - **[Google Fonts 隱私與可用性]** 公開站仍會聯絡第三方，首次離線載入可能缺少 web font
@@ -201,7 +201,7 @@ GitHub Pages origin 的 IndexedDB 不移轉，新網域首次啟動建立空資�
 
 ## Migration Plan
 
-1. 確認 `cloudflare` 與 `komodo` external networks 存在。
+1. 確認 `cloudflared-tunnel-network` 與 `komodo-networks` external networks 存在。
 2. 在 repository 仍為 public、既有 GitHub Pages 仍可用時，於 Komodo UI 建立 application Stack、build-before-replace 與 health gate。
 3. 建立 Cloudflare Tunnel route，origin 指向 `http://bookkeeping:80`。
 4. 由 Komodo UI 手動執行首次部署。
@@ -209,7 +209,7 @@ GitHub Pages origin 的 IndexedDB 不移轉，新網域首次啟動建立空資�
 6. 人工驗證 production 網域、公開存取、PWA 安裝、更新與離線啟動。
 7. 將 GitHub repository 改為 private；確認 GitHub Pages 已自動下線，若方案仍保留 Pages，則手動 unpublish。
 8. 建置並啟動 Deployment Runner，完成一次性 repository registration。
-9. 在 Komodo UI 建立只供 `komodo` network 使用的內部 webhook。
+9. 在 Komodo UI 建立只供 `komodo-networks` network 使用的內部 webhook。
 10. 建立 `KOMODO_WEBHOOK_URL` repository secret，啟用兩階段 GitHub Actions workflow。
 11. 以 `workflow_dispatch` 執行首次自動部署並確認 concurrency、health gate 與失敗保留行為。
 

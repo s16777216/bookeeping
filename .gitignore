@@ -5,3 +5,5 @@
 dist/
 docs/
 node_modules/
+.env.runner
+runner-state/

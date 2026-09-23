@@ -12,11 +12,11 @@
   - 加入 CSP、`nosniff`、Referrer-Policy 與 frame 限制；CSP 保留 Google Fonts 所需來源。
 - 新增應用 Compose：
   - 不發布宿主機 port。
-  - 將 `bookkeeping` 加入既有 `cloudflare` external network。
+  - 將 `bookkeeping` 加入既有 `cloudflared-tunnel-network` external network。
   - 透過 `GET /` healthcheck 判定可用性。
 - 新增獨立的 Deployment Runner 容器與 Compose：
   - repository-level GitHub self-hosted runner。
-  - 只加入既有 `komodo` external network 並呼叫 Komodo webhook。
+  - 只加入既有 `komodo-networks` external network 並呼叫 Komodo webhook。
   - 不使用 privileged mode、不掛載 Docker socket 或宿主機目錄。
   - runner release 與 checksum 固定，由自動 PR 管理升版。
   - 首次以短效 registration token 註冊，設定保存於獨立 volume。
@@ -57,7 +57,7 @@
 - **外部系統與人工設定**
   - GitHub repository visibility、Actions secret 與 repository-level runner registration。
   - Komodo Stack、內網 webhook、build／replace 與失敗保留策略。
-  - 既有 `cloudflare` 與 `komodo` Docker external networks。
+  - 既有 `cloudflared-tunnel-network` 與 `komodo-networks` Docker external networks。
   - Cloudflare Tunnel route。
   - 新站驗收後停用 GitHub Pages。
 

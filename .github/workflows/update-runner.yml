@@ -1,0 +1,73 @@
+name: Update GitHub Actions runner
+
+on:
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve latest official runner release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          release_json="$(gh api repos/actions/runner/releases/latest)"
+          version="$(jq -r '.tag_name | sub("^v"; "")' <<<"${release_json}")"
+          asset="actions-runner-linux-x64-${version}.tar.gz"
+          digest="$(jq -r --arg asset "${asset}" '.assets[] | select(.name == $asset) | .digest' <<<"${release_json}")"
+          checksum="${digest#sha256:}"
+          test -n "${version}"
+          test "${checksum}" != "${digest}"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "checksum=${checksum}" >> "${GITHUB_OUTPUT}"
+
+      - name: Update version and checksum atomically
+        id: update
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          CHECKSUM: ${{ steps.release.outputs.checksum }}
+        run: |
+          set -euo pipefail
+          current="$(sed -n 's/^ARG RUNNER_VERSION=//p' runner/Dockerfile)"
+          if [[ "${current}" == "${VERSION}" ]]; then
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          sed -i -E "s/^ARG RUNNER_VERSION=.*/ARG RUNNER_VERSION=${VERSION}/" runner/Dockerfile
+          sed -i -E "s/^ARG RUNNER_SHA256=.*/ARG RUNNER_SHA256=${CHECKSUM}/" runner/Dockerfile
+          git diff --check
+          echo "changed=true" >> "${GITHUB_OUTPUT}"
+
+      - name: Create update pull request
+        if: steps.update.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          branch="chore/update-actions-runner-${VERSION}"
+          if gh pr list --head "${branch}" --state open --json number --jq 'length > 0' | grep -qx true; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "${branch}"
+          git add runner/Dockerfile
+          git commit -m "chore: update actions runner to ${VERSION}"
+          git push --force-with-lease --set-upstream origin "${branch}"
+          gh pr create \
+            --base main \
+            --head "${branch}" \
+            --title "chore: update actions runner to ${VERSION}" \
+            --body "Updates the pinned official GitHub Actions runner release and its SHA-256 checksum together."

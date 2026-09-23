@@ -1,6 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { VitePWA } from "vite-plugin-pwa";
 import { createAppleSplashScreens } from "@vite-pwa/assets-generator/config";
@@ -8,12 +8,8 @@ import { createAppleSplashScreens } from "@vite-pwa/assets-generator/config";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
-  const base = process.env.BASE_URL || env.BASE_URL || "/";
-
-  return {
-    base,
+export default defineConfig({
+    base: "/",
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
@@ -38,9 +34,9 @@ export default defineConfig(({ mode }) => {
           background_color: "#f2f0e0",
           display: "standalone",
           orientation: "portrait",
-          start_url: base,
-          scope: base,
-          id: base,
+          start_url: "/",
+          scope: "/",
+          id: "/",
           icons: [
             {
               src: "pwa-192x192.png",
@@ -80,7 +76,7 @@ export default defineConfig(({ mode }) => {
                   fit: "contain",
                 },
                 linkMediaOptions: {
-                  basePath: base,
+                  basePath: "/",
                   xhtml: false,
                 },
               },
@@ -100,5 +96,4 @@ export default defineConfig(({ mode }) => {
         },
       }),
     ],
-  };
 });
