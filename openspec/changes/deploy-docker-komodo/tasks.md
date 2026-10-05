@@ -16,12 +16,12 @@
 
 ## 3. Deployment Runner
 
-- [x] 3.1 建立 runner Dockerfile，下載固定版本的 GitHub 官方 runner release 並驗證固定 SHA-256
+- [x] 3.1 建立 runner Dockerfile，依 BuildKit `TARGETARCH` 下載固定版本的 GitHub 官方 x64／arm64 runner release 並驗證對應 SHA-256
 - [x] 3.2 實作 runner 啟動流程，支援以短效 token 首次註冊及從 named volume 重用既有設定
 - [x] 3.3 建立 `compose.runner.yml`，只加入 `komodo-networks` external network 並保存 runner 設定 volume
 - [x] 3.4 驗證 runner service 未使用 privileged mode、Docker socket 或宿主機目錄掛載
 - [x] 3.5 建立不含有效憑證的 `.env.runner.example`，並確保 `.env.runner` 不會被提交
-- [x] 3.6 設定自動升版 PR，使 runner version 與 checksum 必須成對更新
+- [x] 3.6 設定自動升版 PR，使 runner version 與 x64／arm64 checksums 必須一起更新
 
 ## 4. GitHub Actions 部署流程
 
@@ -55,5 +55,5 @@
 - [ ] 7.4 人工驗證 production 網域公開存取、PWA 安裝、更新及離線啟動
 - [ ] 7.5 將 GitHub repository 改為 private；確認 Pages 已下線，必要時手動 unpublish
 - [ ] 7.6 建置並啟動 Deployment Runner，以 repository-level 短效 token 完成首次註冊後移除 token
-- [ ] 7.7 在 Komodo UI 建立僅供 `komodo-networks` network 存取的 webhook，並設定 `KOMODO_WEBHOOK_URL` repository secret
+- [ ] 7.7 在 Komodo UI 建立僅供 `komodo-networks` network 存取的 webhook（Auth style: github），並設定 `KOMODO_WEBHOOK_URL` 與 `KOMODO_WEBHOOK_SECRET` repository secrets
 - [ ] 7.8 以 `workflow_dispatch` 驗證自動部署、concurrency、health gate，以及失敗版本不取代現行容器

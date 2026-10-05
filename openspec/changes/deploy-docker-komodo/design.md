@@ -111,7 +111,7 @@ Workflow 由 `main` push 與 `workflow_dispatch` 觸發：
    - 依賴 Validate job 成功。
    - 在 repository-level self-hosted runner 執行。
    - 不 checkout repository，不執行任意 repository script。
-   - 只使用 repository secret `KOMODO_WEBHOOK_URL` 發出失敗即中止的 HTTP request。
+   - 使用 repository secrets `KOMODO_WEBHOOK_URL` 與 `KOMODO_WEBHOOK_SECRET`，以 HMAC-SHA256 簽章發出失敗即中止的 HTTP request。
    - permissions 採最小權限。
 
 Production concurrency group 同時最多一個 running job 及一個 pending job。`cancel-in-progress` 為 false，因此執行中的部署不中斷；新的 queued run 取代較舊的 pending run，以最新 commit 為準。
@@ -134,7 +134,7 @@ Docker build、container replacement、health gate 與 cleanup 均由 Komodo 負
 
 ### 7. Runner image、註冊與升版
 
-Runner image 從 GitHub 官方 runner release 下載，並校驗固定 SHA-256。版本與 checksum 必須成對更新。
+Runner image 依 Docker BuildKit `TARGETARCH` 從 GitHub 官方 runner release 選擇 `x64` 或 `arm64` asset，並分別校驗固定 SHA-256。版本與兩個架構的 checksum 必須一起更新。
 
 首次啟動：
 

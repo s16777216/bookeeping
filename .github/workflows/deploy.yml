@@ -40,7 +40,15 @@ jobs:
       - name: Trigger internal Komodo deployment
         env:
           KOMODO_WEBHOOK_URL: ${{ secrets.KOMODO_WEBHOOK_URL }}
+          KOMODO_WEBHOOK_SECRET: ${{ secrets.KOMODO_WEBHOOK_SECRET }}
         run: |
+          set -euo pipefail
+          payload='{"ref":"refs/heads/main"}'
+          signature="sha256=$(printf '%s' "${payload}" | openssl dgst -sha256 -hmac "${KOMODO_WEBHOOK_SECRET}" | sed 's/^.* //')"
           curl --fail-with-body --silent --show-error \
             --request POST \
+            --header "Content-Type: application/json" \
+            --header "X-GitHub-Event: push" \
+            --header "X-Hub-Signature-256: ${signature}" \
+            --data "${payload}" \
             "${KOMODO_WEBHOOK_URL}"
