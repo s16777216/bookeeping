@@ -49,11 +49,11 @@
 
 ## 7. 地端部署與 Cutover
 
-- [ ] 7.1 確認地端已存在 `cloudflared-tunnel-network` 與 `komodo-networks` external networks
-- [ ] 7.2 在 repository 仍為 public 且 GitHub Pages 仍運作時，於 Komodo UI 建立 application Stack、build-before-replace 與 health gate
-- [ ] 7.3 設定 Cloudflare Tunnel 指向 `http://bookkeeping:80`，由 Komodo UI 手動完成首次部署
-- [ ] 7.4 人工驗證 production 網域公開存取、PWA 安裝、更新及離線啟動
-- [ ] 7.5 將 GitHub repository 改為 private；確認 Pages 已下線，必要時手動 unpublish
-- [ ] 7.6 建置並啟動 Deployment Runner，以 repository-level 短效 token 完成首次註冊後移除 token
-- [ ] 7.7 在 Komodo UI 建立僅供 `komodo-networks` network 存取的 webhook（Auth style: github），並設定 `KOMODO_WEBHOOK_URL` 與 `KOMODO_WEBHOOK_SECRET` repository secrets
-- [ ] 7.8 以 `workflow_dispatch` 驗證自動部署、concurrency、health gate，以及失敗版本不取代現行容器
+- [x] 7.1 確認地端已存在 `cloudflared-tunnel-network` 與 `komodo-networks` external networks
+- [x] 7.2 在 repository 仍為 public 且 GitHub Pages 仍運作時，於 Komodo UI 建立 application Stack、build-before-replace 與 health gate
+- [x] 7.3 設定 Cloudflare Tunnel 指向 `http://bookkeeping:80`，由 Komodo UI 手動完成首次部署
+- [x] 7.4 人工驗證 production 網域公開存取、PWA 安裝、更新及離線啟動
+- [x] 7.5 將 GitHub repository 改為 private；確認 Pages 已下線，必要時手動 unpublish
+- [x] 7.6 建置並啟動 Deployment Runner，以 repository-level 短效 token 完成首次註冊後移除 token（已移除，不適用）
+- [x] 7.7 在 Komodo UI 建立僅供 `komodo-networks` network 存取的 webhook（Auth style: github），並設定 `KOMODO_WEBHOOK_URL` 與 `KOMODO_WEBHOOK_SECRET` repository secrets
+- [x] 7.8 以 `workflow_dispatch` 驗證自動部署、concurrency、health gate，以及失敗版本不取代現行容器
