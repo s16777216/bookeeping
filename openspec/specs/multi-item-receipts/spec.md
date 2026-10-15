@@ -1,5 +1,9 @@
 # multi-item-receipts Specification
 
+## Purpose
+
+支援單張收據記錄多筆品項明細（品名、金額、可選數量），由系統自動加總收據總額，並可透過共用計算機鍵盤輸入品項金額，於收據卡片以品項數量徽章標示多品項收據。
+
 ## Requirements
 
 ### Requirement: Multi-Item Line Entry

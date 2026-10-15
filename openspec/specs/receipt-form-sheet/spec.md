@@ -1,5 +1,9 @@
 # receipt-form-sheet Specification
 
+## Purpose
+
+提供新增與編輯共用的收據表單抽屜（ReceiptFormSheet），涵蓋既有收據資料預填、儲存變更與軟刪除收據的流程。
+
 ## Requirements
 
 ### Requirement: Unified Receipt Form Sheet
