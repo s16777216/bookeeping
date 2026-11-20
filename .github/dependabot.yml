@@ -7,11 +7,3 @@ updates:
     labels:
       - dependencies
       - docker
-
-  - package-ecosystem: docker
-    directory: /runner
-    schedule:
-      interval: weekly
-    labels:
-      - dependencies
-      - docker
